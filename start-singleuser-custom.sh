@@ -2,28 +2,16 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
-# First: Update from github
-cd /home/jovyan/fuzzingbook
-echo "Updating repo"
-git config --global user.email "fuzzingbook@example.com"
-git config --global user.name "Fuzzingbook Docker"
+USER_HOME=/home/$NB_USER
 
-echo "Storing local changes"
-git stash
-git pull origin master
+"${USER_HOME}"/project1/scripts/setup-project.sh
 
-echo "Reapplying local changes -- kepp local"
-git stash apply
-# if conflict on pop:
-git merge --strategy-option ours
+echo "signing notebooks"
+jupyter trust $(find "${USER_HOME}/work" -name "*.ipynb")
 
-cd ~
-
-echo "Re-signing notebooks"
-jupyter trust /home/$NB_USER/fuzzingbook/notebooks/*.ipynb /home/$NB_USER/fuzzingbook/docs/notebooks/*.ipynb /home/$NB_USER/fuzzingbook/docs/beta/notebooks/*.ipynb
-
-
-pip install svglib==0.9.0b0
+fix-permissions "${USER_HOME}/work"
+fix-permissions "${USER_HOME}/.local"
+fix-permissions "${USER_HOME}/.local/share/jupyter"
 
 # Start Jupyter Lab
 set -e
@@ -33,13 +21,6 @@ if [[ "$NOTEBOOK_ARGS $@" != *"--ip="* ]]; then
   NOTEBOOK_ARGS="--ip=0.0.0.0 $NOTEBOOK_ARGS"
 fi
 
-# handle some deprecated environment variables
-# from DockerSpawner < 0.8.
-# These won't be passed from DockerSpawner 0.9,
-# so avoid specifying --arg=empty-string
-#if [ ! -z "$NOTEBOOK_DIR" ]; then
-#  NOTEBOOK_ARGS="--notebook-dir='$NOTEBOOK_DIR' $NOTEBOOK_ARGS"
-#fi
 if [ ! -z "$JPY_PORT" ]; then
   NOTEBOOK_ARGS="--port=$JPY_PORT $NOTEBOOK_ARGS"
 fi
@@ -64,7 +45,5 @@ else
   NOTEBOOK_BIN=jupyterhub-singleuser
 fi
 
-. /usr/local/bin/start.sh $NOTEBOOK_BIN /home/jovyan/fuzzingbook/docs/beta/notebooks/00_Table_of_Contents.ipynb --notebook-dir='/home/jovyan/fuzzingbook/docs/beta/notebooks' $NOTEBOOK_ARGS $@
-#. /usr/local/bin/start.sh $NOTEBOOK_BIN /home/jovyan/fuzzingbook/docs/beta/notebooks/00_Table_of_Contents.ipynb --notebook-dir='/home/jovyan/fuzzingbook/docs/beta/notebooks' $NOTEBOOK_ARGS $@
-#. /usr/local/bin/start.sh $NOTEBOOK_BIN --notebook-dir='/home/jovyan/fuzzingbook/docs/beta/notebooks/00_Table_of_Contents.ipynb' $NOTEBOOK_ARGS $@
+. /usr/local/bin/start.sh $NOTEBOOK_BIN "${USER_HOME}/work" --notebook-dir="${USER_HOME}/work" $NOTEBOOK_ARGS $@
 

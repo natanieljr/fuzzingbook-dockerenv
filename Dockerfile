@@ -3,21 +3,16 @@ FROM jupyter/scipy-notebook
 LABEL maintainer="Nataniel Borges Jr."
 LABEL description="v0.1"
 
+#
+# install The Fuzzing Book's requirements
+#
 USER root
+RUN apt update
+RUN apt install -y --no-install-recommends graphviz inkscape bc ed texinfo groff wget automake autoconf bison ed texinfo clang cargo firefox unzip
+RUN apt install -y --no-install-recommends ninja-build cmake gcc lcov
 
-# Install required APT packages
-RUN apt update && \
- apt install -y --no-install-recommends graphviz inkscape bc ed texinfo groff wget automake autoconf bison ed texinfo clang cargo firefox unzip && \
- apt clean && \
- rm -rf /var/lib/apt/lists/*
-
-USER $NB_UID
-
+USER $NB_USER
 RUN rm -rf /home/$NB_UID/.cache
-
-USER root 
-
-# Install required python packages
 RUN pip install six==1.11.0 && \
  pip install z3-solver==4.8.0.0.post1 && \
  pip install svglib==0.9.0b0 && \
@@ -25,7 +20,6 @@ RUN pip install six==1.11.0 && \
  pip install numpy && \
  pip install pandas && \
  pip install graphviz && \
- pip install jupyter_contrib_nbextensions && \
  pip install autopep8 && \
  pip install mypy && \
  pip install notedown && \
@@ -42,9 +36,6 @@ RUN pip install six==1.11.0 && \
  pip install redis && \
  pip install selenium && \
  pip install laniakea && \
- cd /home/$NB_USER && \
- git clone https://github.com/uds-se/fuzzingbook.git && \
- fix-permissions /home/$NB_USER/fuzzingbook && \
  pip install six==1.11.0 && \
  pip install z3-solver==4.8.0.0.post1 && \
  pip install svglib==0.9.0b0 && \
@@ -52,7 +43,6 @@ RUN pip install six==1.11.0 && \
  pip install numpy && \
  pip install pandas && \
  pip install graphviz && \
- pip install jupyter_contrib_nbextensions && \
  pip install autopep8 && \
  pip install mypy && \
  pip install notedown && \
@@ -69,56 +59,49 @@ RUN pip install six==1.11.0 && \
  pip install redis && \
  pip install selenium && \
  pip install laniakea
-# cd /home/$NB_USER && \
-# git clone https://github.com/uds-se/fuzzingbook.git && \
-# fix-permissions /home/$NB_USER/fuzzingbook && \
 
-## Geckodriver
-RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.24.0/geckodriver-v0.24.0-linux64.tar.gz && \
-  sh -c 'tar -x geckodriver -zf geckodriver-v0.24.0-linux64.tar.gz -O > /usr/bin/geckodriver' && \
-  chmod +x /usr/bin/geckodriver && \
-  rm geckodriver-v0.24.0-linux64.tar.gz
-
-# Activate nbdime and nbstripout
-RUN nbdime extensions --enable && \
- nbdime config-git --enable --global
-RUN cd fuzzingbook
-
-# enable nbdime for JupyterLab
-RUN conda install -c conda-forge nodejs # you
-
-# Install aditional extensions (ToC and exercise)
+#
+# install aditional jupyter extensions
+#
+RUN pip install jupyter_contrib_nbextensions
 RUN jupyter contrib nbextension install --user && \
- jupyter nbextension enable toc2/main --user && \
- jupyter nbextension enable exercise2/main --user
+  jupyter nbextension enable toc2/main --user && \
+  jupyter nbextension enable exercise2/main --user
 
-# Other useful extensions
 RUN jupyter nbextension enable codefolding/main --user && \
- jupyter nbextension enable execute_time/main --user && \
- jupyter nbextension enable varInspector/main --user && \
- jupyter nbextension enable collapsible_headings/main --user
+  jupyter nbextension enable execute_time/main --user && \
+  jupyter nbextension enable varInspector/main --user && \
+  jupyter nbextension enable collapsible_headings/main --user
 
 # run matplotlib once to generate the font cache
 RUN python -c "import matplotlib as mpl; mpl.use('Agg'); import pylab as plt; fig, ax = plt.subplots(); fig.savefig('test.png')" && \
- test -e test.png && \
- rm test.png
+ test -e test.png && rm test.png
 
-# Trust notebooks such that users can see their HTML and JS output
-RUN jupyter trust /home/$NB_USER/fuzzingbook/notebooks/*.ipynb /home/$NB_USER/fuzzingbook/docs/notebooks/*.ipynb /home/$NB_USER/fuzzingbook/docs/beta/notebooks/*.ipynb
+USER root
+RUN jupyter lab build
 
-# Fix directory permissions
-RUN fix-permissions /home/$NB_USER/.local && \
- fix-permissions /home/$NB_USER/.local/share/jupyter
+#
+# install projects
+#
+COPY ./2019_ws_generating_software_tests_project-html-tidy /home/$NB_USER/project1
+RUN chmod +x /home/$NB_USER/project1/scripts/*.sh
 
-# Remove temporary content
-RUN apt-get clean && \
- apt-get autoremove && \
- rm -rf /var/lib/apt/lists/* 
+#
+# fix directory permissions
+#
+RUN chown -R $NB_USER /home/$NB_USER/project1
+RUN fix-permissions /home/$NB_USER/
+RUN fix-permissions /home/$NB_USER/.local
+RUN fix-permissions /home/$NB_USER/.local/share/jupyter
+RUN fix-permissions /home/$NB_USER/work
 
 COPY start-singleuser-custom.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/start-singleuser-custom.sh
 RUN mv /usr/local/bin/start-singleuser.sh /usr/local/bin/start-singleuser-old.sh
-#RUN cp /usr/local/bin/custom-start.sh /usr/local/bin/start-singleuser.sh
 
-# Quit root mode
+#
+# remove temporary apt files
+#
+RUN apt clean && rm -rf /var/lib/apt/lists/*
+
 USER $NB_UID
