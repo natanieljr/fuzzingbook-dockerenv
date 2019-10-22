@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
@@ -7,24 +7,12 @@ USER_HOME=/home/$NB_USER
 #
 # install/update the fuzzingbook
 #
-if [[ ! -d "${USER_HOME}/fuzzingbook" ]]; then
-    wget https://www.fuzzingbook.org/dist/fuzzingbook-code.zip -O "${USER_HOME}/fuzzingbook.zip"
-    unzip "${USER_HOME}/fuzzingbook.zip"
+if [[ ! -d "${USER_HOME}/fuzzingbook-code" ]]; then
+    wget https://www.fuzzingbook.org/dist/fuzzingbook-code.zip -O "${USER_HOME}/fuzzingbook-code.zip"
+    unzip "${USER_HOME}/fuzzingbook-code.zip" -d "${USER_HOME}/fuzzingbook-code"
 fi
 
-echo "Updating repo"
-git config --global user.email "fuzzingbook@example.com"
-git config --global user.name "Fuzzingbook Docker"
-
-echo "Storing local changes"
-(cd "${USER_HOME}/fuzzingbook" && git stash)
-(cd "${USER_HOME}/fuzzingbook" && git pull origin master)
-
-echo "Reapplying local changes -- kepp local"
-(cd "${USER_HOME}/fuzzingbook" && git stash apply)
-(cd "${USER_HOME}/fuzzingbook" && git merge --startegy-option ours)
-
-pip install -e "${USER_HOME}/fuzzingbook"
+pip install -e "${USER_HOME}/fuzzingbook-code/fuzzingbook"
 
 #
 # setup the projects
