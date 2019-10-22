@@ -4,8 +4,36 @@
 
 USER_HOME=/home/$NB_USER
 
+#
+# install/update the fuzzingbook
+#
+if [[ ! -d "${USER_HOME}/fuzzingbook" ]]; then
+    wget https://www.fuzzingbook.org/dist/fuzzingbook-code.zip -O "${USER_HOME}/fuzzingbook.zip"
+    unzip "${USER_HOME}/fuzzingbook.zip"
+fi
+
+echo "Updating repo"
+git config --global user.email "fuzzingbook@example.com"
+git config --global user.name "Fuzzingbook Docker"
+
+echo "Storing local changes"
+(cd "${USER_HOME}/fuzzingbook" && git stash)
+(cd "${USER_HOME}/fuzzingbook" && git pull origin master)
+
+echo "Reapplying local changes -- kepp local"
+(cd "${USER_HOME}/fuzzingbook" && git stash apply)
+(cd "${USER_HOME}/fuzzingbook" && git merge --startegy-option ours)
+
+pip install -e "${USER_HOME}/fuzzingbook"
+
+#
+# setup the projects
+#
 "${USER_HOME}"/project1/scripts/setup-project.sh
 
+#
+# setup permissions
+#
 echo "signing notebooks"
 jupyter trust $(find "${USER_HOME}/work" -name "*.ipynb")
 
@@ -13,10 +41,11 @@ fix-permissions "${USER_HOME}/work"
 fix-permissions "${USER_HOME}/.local"
 fix-permissions "${USER_HOME}/.local/share/jupyter"
 
-# Start Jupyter Lab
+#
+# start Jupyter Lab
+#
 set -e
 
-# set default ip to 0.0.0.0
 if [[ "$NOTEBOOK_ARGS $@" != *"--ip="* ]]; then
   NOTEBOOK_ARGS="--ip=0.0.0.0 $NOTEBOOK_ARGS"
 fi
